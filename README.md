@@ -2,6 +2,7 @@
 
 ## Description
 Generates a patch for a single branch of a single repository using 'git diff'.
+Generates a git and a composer version of the patch.
 
 ## Requirements
 /bin/bash
@@ -13,15 +14,20 @@ git clone https://github.com/katmoon/create-patch.git
 ```
 * (Optional; for *nix systems) create symlink for converter into the bin folder
 ```
-curl -o create-git-patch.sh https://raw.githubusercontent.com/katmoon/create-patch/main/create-git-patch.sh
-ln -s `pwd`/create-git-patch.sh ~/bin/
-chmod +x ~/bin/create-git-patch.sh
+curl -o create-patch.sh https://raw.githubusercontent.com/katmoon/create-patch/main/create-patch.sh
+ln -s `pwd`/create-patch.sh ~/bin/
+chmod +x ~/bin/create-patch.sh
+```
+
+Specify the path to the patch converter tool in the .env file.
+```
+cp `pwd`.env.example .env
 ```
 
 ## Usage
 ```
-> create-git-patch.sh -h
-Usage: sh create-git-patch.sh [--help] [-b <branch>] [-v <version>] [-r <commit>:<commit>]
+> create-patch.sh -h
+Usage: sh create-patch.sh [--help] [-b <branch>] [-v <version>] [-r <commit>:<commit>]
 Generate patch by collecting changes from latest tag till HEAD (by default).
 
 -b <branch>             Specify the branch. Example: ABCD-1234.

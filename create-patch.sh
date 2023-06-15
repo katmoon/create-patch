@@ -26,7 +26,7 @@ then
     exit 1
 fi
 
-# 2. Determine bin path for system tools
+# Determine bin path for system tools
 GIT_BIN=`which git`
 CAT_BIN=`which cat`
 GREP_BIN=`which grep`
@@ -36,6 +36,18 @@ HEAD_BIN=`which head`
 PWD_BIN=`which pwd`
 
 BASE_NAME=`$BASENAME_BIN "$0"`
+
+
+# 2. Load env variables
+TOOL_DIR=$(dirname "$0")
+ENV_FILE_PATH="$TOOL_DIR"/.env
+if [ -f "${ENV_FILE_PATH}" ]
+then
+    source $ENV_FILE_PATH
+    echo "Loaded .env from $ENV_FILE_PATH."
+else
+   echo -e "$ENV_FILE_PATH was not found. Copy .env.example to .env and specify the path to the converter tool."
+fi
 
 # 3. Help menu
 if [ "$1" = "-?" -o "$1" = "-h" -o "$1" = "--help" ]
@@ -149,24 +161,42 @@ MAGENTO_VERSION=`echo ${DEV_BRANCH_NAME:18} | $AWK_BIN '{print tolower($0)}'`
 TICKET_NUMBER=$(echo "$CURRENT_BRANCH" | $GREP_BIN -oE '^[A-Z]*-[0-9]*')
 if [[ "$PATCH_VERSION" == "v1" ]] || [[ -z "$PATCH_VERSION" ]]
 then
-  PATCH_VERSION_SUFFIX=
+    PATCH_VERSION_SUFFIX=
 else
-  PATCH_VERSION_SUFFIX="_""$PATCH_VERSION"
+    PATCH_VERSION_SUFFIX="_""$PATCH_VERSION"
 fi
-PATCH_FILE=`echo "$TICKET_NUMBER""_""$MAGENTO_VERSION""$PATCH_VERSION_SUFFIX"".patch"`
+PATCH_FILE_NAME_GIT=`echo "$TICKET_NUMBER""_""$MAGENTO_VERSION""$PATCH_VERSION_SUFFIX"".git.patch"`
+PATCH_FILE_NAME_COMPOSER=`echo "$TICKET_NUMBER""_""$MAGENTO_VERSION""$PATCH_VERSION_SUFFIX"".patch"`
 
 
 # 7. Create the patch file
 
-$GIT_BIN diff -a -p --no-prefix "$COLLECT_REVISIONS_RANGE" > "$PATCH_FILE"
+$GIT_BIN diff -a -p "$COLLECT_REVISIONS_RANGE" > "$PATCH_FILE_NAME_GIT"
+
+# Create a composer version of the file
+CURRENT_DIR=`$PWD_BIN`
+PATCH_FILE_PATH_GIT="$CURRENT_DIR"/"$PATCH_FILE_NAME_GIT"
+PATCH_FILE_PATH_COMPOSER="$CURRENT_DIR"/"$PATCH_FILE_NAME_COMPOSER"
+if [ -n $PATCH_CONVERTER_TOOL_BIN ]
+then
+    $PATCH_CONVERTER_TOOL_BIN $PATCH_FILE_PATH_GIT > $PATCH_FILE_PATH_COMPOSER
+fi
+
 
 # Report results
-CURRENT_DIR=`$PWD_BIN`
-PATCH_FILE_PATH="$CURRENT_DIR"/"$PATCH_FILE"
-if [ -f "${PATCH_FILE_PATH}" ]
+
+if [ -f "${PATCH_FILE_PATH_GIT}" ]
 then
-  echo "Patch generated successfully: $PATCH_FILE. Location: $PATCH_FILE_PATH"
+    echo "Git patch generated successfully."
+    echo "Git patch location: $PATCH_FILE_PATH_GIT"
 else
-  echo Something went wrong when generating the patch.
+    echo "Something went wrong when generating the patch."
+fi
+if [ -f "${PATCH_FILE_PATH_COMPOSER}" ]
+then
+    echo "Composer patch generated successfully."
+    echo "Composer patch location: $PATCH_FILE_PATH_COMPOSER"
+else
+    echo "Something went wrong when generating the composer patch. Recheck the converter tool location."
 fi
 exit 0
