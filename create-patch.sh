@@ -4,6 +4,7 @@
 # (c) Copyright 2023 Adobe Commerce.
 
 # 1. Check required system tools
+
 _check_installed_tools() {
     local missed=""
 
@@ -18,7 +19,7 @@ _check_installed_tools() {
     echo $missed
 }
 
-REQUIRED_UTILS='git cat grep basename awk head pwd'
+REQUIRED_UTILS='git cat grep basename awk head pwd dirname'
 MISSED_REQUIRED_TOOLS=`_check_installed_tools $REQUIRED_UTILS`
 if (( `echo $MISSED_REQUIRED_TOOLS | wc -w` > 0 ));
 then
@@ -34,14 +35,16 @@ BASENAME_BIN=`which basename`
 AWK_BIN=`which awk`
 HEAD_BIN=`which head`
 PWD_BIN=`which pwd`
+DIRNAME_BIN=`which dirname`
 
 BASE_NAME=`$BASENAME_BIN "$0"`
 
 
 # 2. Load env variables
-TOOL_DIR=$(dirname "$0")
+
+TOOL_DIR=$($DIRNAME_BIN "$0")
 ENV_FILE_PATH="$TOOL_DIR"/.env
-if [ -f "${ENV_FILE_PATH}" ]
+if [ -f "$ENV_FILE_PATH" ]
 then
     source $ENV_FILE_PATH
     echo "Loaded .env from $ENV_FILE_PATH."
@@ -50,6 +53,7 @@ else
 fi
 
 # 3. Help menu
+
 if [ "$1" = "-?" -o "$1" = "-h" -o "$1" = "--help" ]
 then
     $CAT_BIN << EOFH
@@ -71,6 +75,7 @@ EOFH
 fi
 
 # 4. Get options
+
 BRANCH=
 PATCH_VERSION=
 COLLECT_REVISIONS_RANGE=
@@ -125,7 +130,7 @@ CURRENT_TAG=`$GIT_BIN describe --abbrev=0 --tags`
 # If revisions range was omitted, then set range from current tag to HEAD
 if [ -z "$COLLECT_REVISIONS_RANGE" ]
 then
-    COLLECT_REVISIONS_RANGE=""$CURRENT_TAG"..HEAD"
+    COLLECT_REVISIONS_RANGE="$CURRENT_TAG..HEAD"
     START_COMMIT=`$GIT_BIN rev-list "$CURRENT_TAG" | $HEAD_BIN -n 1`
 else
     START_COMMIT=`echo "$COLLECT_REVISIONS_RANGE" | $AWK_BIN -F ":" '{print $1}'`
@@ -138,7 +143,7 @@ else
     if [ ! -z "$END_COMMIT" ]
     then
         _check_git_revision "$END_COMMIT"
-        COLLECT_REVISIONS_RANGE="$START_COMMIT""..""$END_COMMIT"
+        COLLECT_REVISIONS_RANGE="$START_COMMIT..$END_COMMIT"
     fi
 
 fi
@@ -163,15 +168,15 @@ if [[ "$PATCH_VERSION" == "v1" ]] || [[ -z "$PATCH_VERSION" ]]
 then
     PATCH_VERSION_SUFFIX=
 else
-    PATCH_VERSION_SUFFIX="_""$PATCH_VERSION"
+    PATCH_VERSION_SUFFIX="_$PATCH_VERSION"
 fi
-PATCH_FILE_NAME_GIT=`echo "$TICKET_NUMBER""_""$MAGENTO_VERSION""$PATCH_VERSION_SUFFIX"".git.patch"`
-PATCH_FILE_NAME_COMPOSER=`echo "$TICKET_NUMBER""_""$MAGENTO_VERSION""$PATCH_VERSION_SUFFIX"".patch"`
+PATCH_FILE_NAME_GIT="$TICKET_NUMBER""_""$MAGENTO_VERSION""$PATCH_VERSION_SUFFIX"".git.patch"
+PATCH_FILE_NAME_COMPOSER="$TICKET_NUMBER""_""$MAGENTO_VERSION""$PATCH_VERSION_SUFFIX"".patch"
 
 
 # 7. Create the patch file
 
-$GIT_BIN diff -a -p "$COLLECT_REVISIONS_RANGE" > "$PATCH_FILE_NAME_GIT"
+$GIT_BIN diff -a -p $COLLECT_REVISIONS_RANGE > $PATCH_FILE_NAME_GIT
 
 # Create a composer version of the file
 CURRENT_DIR=`$PWD_BIN`
@@ -183,16 +188,16 @@ then
 fi
 
 
-# Report results
+# 8. Report results
 
-if [ -f "${PATCH_FILE_PATH_GIT}" ]
+if [ -f "$PATCH_FILE_PATH_GIT" ] && [ $(wc -c < "$PATCH_FILE_PATH_GIT") -gt 1 ]
 then
     echo "Git patch generated successfully."
     echo "Git patch location: $PATCH_FILE_PATH_GIT"
 else
     echo "Something went wrong when generating the patch."
 fi
-if [ -f "${PATCH_FILE_PATH_COMPOSER}" ]
+if [ -f "$PATCH_FILE_PATH_COMPOSER" ] && [ $(wc -c < "$PATCH_FILE_PATH_COMPOSER") -gt 1 ]
 then
     echo "Composer patch generated successfully."
     echo "Composer patch location: $PATCH_FILE_PATH_COMPOSER"
