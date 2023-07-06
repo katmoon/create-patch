@@ -57,17 +57,21 @@ fi
 if [ "$1" = "-?" -o "$1" = "-h" -o "$1" = "--help" ]
 then
     $CAT_BIN << EOFH
-Usage: sh $BASE_NAME [--help] [-b <branch>] [-v <version>] [-r <commit>:<commit>]
-Generate patch by collecting changes from latest tag till HEAD (by default).
+Usage: sh $BASE_NAME [--help] [-b <branch>] [-r <release version>] [-v <version>] [-c <commit>:<commit>]
+Generate a patch by collecting changes from the latest tag to HEAD (by default).
+The tool should be run from the directory containing the repository.
 
 -b <branch>             Specify the branch. Example: ABCD-1234.
 
--v <version>            Specify the patch version. Examples: v2, DEBUG, DEBUG_v2.
+-r <release version>    [Optional] Specify the release version to use for the patch file name.
+                        If not specified, the tool will try to identify the release version based on the latest tag.
 
--r <commit>:<commit>    Collect patch using changes between two arbitrary <commit>
+-v <patch version>      Specify the patch version. Examples: v2, DEBUG, DEBUG_v2. Leave empty for v1.
+
+-c <commit>:<commit>    [Optional] Collect patch using changes between two arbitrary <commit>
                         Patch is generating by "git diff" tool, so this range treated in the same way as "git diff" command does,
-                        thus if <commit> on one side is omitted, it will have the same effect as using HEAD instead.
-                        If this option will be omitted at all - patch will be generated using changes between latest tag and HEAD.
+                        that is if <commit> on one side is omitted, it will have the same effect as using HEAD instead.
+                        If this option will be omitted at all, the patch will be generated using the changes between the latest tag and HEAD.
 
 --help                  Show this help message
 EOFH
@@ -84,10 +88,13 @@ while getopts b:v:r: opt; do
     b)
         BRANCH="$OPTARG"
         ;;
+    r)
+        RELEASE_VERSION="$OPTARG"
+        ;;
     v)
         PATCH_VERSION="$OPTARG"
         ;;
-    r)
+    c)
         COLLECT_REVISIONS_RANGE="$OPTARG"
         ;;
     esac
@@ -150,20 +157,22 @@ fi
 
 echo "======== Commits in the patch: ========"
 $GIT_BIN log --oneline -20 $COLLECT_REVISIONS_RANGE
-echo "=========================="
-
+echo "======== Based on: ===================="
+$GIT_BIN log --oneline -1 `git rev-parse $START_COMMIT`
+echo "======================================="
 
 # 6. Patch tool file name
 
 CURRENT_BRANCH=`$GIT_BIN rev-parse --abbrev-ref HEAD`
-# Dev branch name must be determined using the latest tag
-DEV_BRANCH_NAME=`$GIT_BIN branch -a --contains "$CURRENT_TAG" | $GREP_BIN origin/v[.0123456789-p]* | $HEAD_BIN -n 1`
-# DEV_BRANCH_NAME can contain string like this "  remotes/origin/v2.4.3-p3"
-# thus it must be taken into account 2 spaces in it
-MAGENTO_VERSION=`echo ${DEV_BRANCH_NAME:18} | $AWK_BIN '{print tolower($0)}'`
-
-
 TICKET_NUMBER=$(echo "$CURRENT_BRANCH" | $GREP_BIN -oE '^[A-Z]*-[0-9]*')
+
+if [ -n "$RELEASE_VERSION" ] ; then
+    MAGENTO_VERSION=$RELEASE_VERSION
+else
+    MAGENTO_VERSION=`echo $CURRENT_TAG | $AWK_BIN '{gsub("v",""); print}'`
+fi
+
+
 if [[ "$PATCH_VERSION" == "v1" ]] || [[ -z "$PATCH_VERSION" ]]
 then
     PATCH_VERSION_SUFFIX=
