@@ -21,7 +21,7 @@ _check_installed_tools() {
 
 REQUIRED_UTILS='git cat grep basename awk head pwd dirname'
 MISSED_REQUIRED_TOOLS=`_check_installed_tools $REQUIRED_UTILS`
-if (( `echo $MISSED_REQUIRED_TOOLS | wc -w` > 0 ));
+if (( `echo $MISSED_REQUIRED_TOOLS | wc -w` > 0 ))
 then
     echo -e "Error! Some required system tools, that are utilized in this sh script, are not installed:\nTool(s) \"$MISSED_REQUIRED_TOOLS\" is(are) missed, please install it(them)."
     exit 1
@@ -85,7 +85,7 @@ BRANCH=
 RELEASE_VERSION=
 PATCH_VERSION=
 COLLECT_REVISIONS_RANGE=
-while getopts b:v:r: opt; do
+while getopts b:v:r:c: opt; do
     case $opt in
     b)
         BRANCH="$OPTARG"
@@ -107,7 +107,8 @@ done
 _check_git_revision() {
     CHECK_COMMIT=`$GIT_BIN rev-list HEAD.."$1" > /dev/null 2>&1`
     CHECK_COMMIT_RESULT=$?
-    if [ ! $CHECK_COMMIT_RESULT -eq 0 ] ; then
+    if [ ! "$CHECK_COMMIT_RESULT" -eq 0 ]
+    then
         echo -e "ERROR: An invalid revision range was specified."
         exit 1
     fi
@@ -117,16 +118,19 @@ _check_git_revision() {
 IS_UNDER_GIT_CONTROL=777
 $GIT_BIN rev-parse -q
 IS_UNDER_GIT_CONTROL=$?
-if [ ! $IS_UNDER_GIT_CONTROL -eq 0 ] ; then
+if [ ! "$IS_UNDER_GIT_CONTROL" -eq 0 ]
+then
     echo -e "ERROR: The patch can't be created because the current directory is not a Git repository."
     exit 1
 fi
 
 # Checkout branch
-if [ -n "$BRANCH" ] ; then
+if [ -n "$BRANCH" ]
+then
     $GIT_BIN fetch
     $GIT_BIN checkout $BRANCH
-    if [ $? -ne 0 ]; then
+    if [ $? -ne 0 ]
+    then
       echo -e "ERROR: The branch $BRANCH does not exist."
       exit 1
     fi
@@ -158,7 +162,7 @@ else
 fi
 
 echo "======== Commits in the patch: ========"
-$GIT_BIN log --oneline -20 $COLLECT_REVISIONS_RANGE
+$GIT_BIN log --oneline -50 $COLLECT_REVISIONS_RANGE
 echo "======== Based on: ===================="
 $GIT_BIN log --oneline -1 `$GIT_BIN rev-parse $START_COMMIT`
 echo "======================================="
@@ -168,16 +172,17 @@ echo "======================================="
 CURRENT_BRANCH=`$GIT_BIN rev-parse --abbrev-ref HEAD`
 TICKET_NUMBER=$(echo "$CURRENT_BRANCH" | $GREP_BIN -oE '^[A-Z]*-[0-9]*')
 DEBUG_SUFFIX=$(echo "$CURRENT_BRANCH" | $GREP_BIN -i 'debug')
-if [ -n "$DEBUG_SUFFIX" ] ; then
+if [ -n "$DEBUG_SUFFIX" ]
+then
     PATCH_ID="$TICKET_NUMBER""_DEBUG"
 else
     PATCH_ID="$TICKET_NUMBER"
 fi
 
-if [ -z "$RELEASE_VERSION" ] ; then
+if [ -z "$RELEASE_VERSION" ]
+then
     RELEASE_VERSION=`echo $CURRENT_TAG | $AWK_BIN '{gsub("v",""); print}'`
 fi
-
 
 if [[ "$PATCH_VERSION" == "v1" ]] || [[ -z "$PATCH_VERSION" ]]
 then
@@ -185,6 +190,7 @@ then
 else
     PATCH_VERSION_SUFFIX="_$PATCH_VERSION"
 fi
+
 PATCH_FILE_NAME_GIT="$PATCH_ID""_""$RELEASE_VERSION""$PATCH_VERSION_SUFFIX"".git.patch"
 PATCH_FILE_NAME_COMPOSER="$PATCH_ID""_""$RELEASE_VERSION""$PATCH_VERSION_SUFFIX"".patch"
 
@@ -197,7 +203,7 @@ $GIT_BIN diff -a -p $COLLECT_REVISIONS_RANGE > $PATCH_FILE_NAME_GIT
 CURRENT_DIR=`$PWD_BIN`
 PATCH_FILE_PATH_GIT="$CURRENT_DIR"/"$PATCH_FILE_NAME_GIT"
 PATCH_FILE_PATH_COMPOSER="$CURRENT_DIR"/"$PATCH_FILE_NAME_COMPOSER"
-if [ -n $PATCH_CONVERTER_TOOL_BIN ]
+if [ -n "$PATCH_CONVERTER_TOOL_BIN" ]
 then
     $PATCH_CONVERTER_TOOL_BIN $PATCH_FILE_PATH_GIT > $PATCH_FILE_PATH_COMPOSER
 fi
