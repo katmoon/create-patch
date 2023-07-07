@@ -18,3 +18,12 @@ Specify the path to the patch converter tool in the .env file.
 ```
 create-patch.sh -h
 ```
+
+Example:
+
+```
+create-patch.sh -b ABCD-1234
+create-patch.sh -b ABCD-1234 -v v2
+create-patch.sh -b ABCD-1234_DEBUG -v v2
+```
+
