@@ -19,45 +19,44 @@ _check_installed_tools() {
     echo $missed
 }
 
-REQUIRED_UTILS='git cat grep basename awk head pwd dirname'
-MISSED_REQUIRED_TOOLS=`_check_installed_tools $REQUIRED_UTILS`
-if (( `echo $MISSED_REQUIRED_TOOLS | wc -w` > 0 ))
+required_utils='git cat grep basename awk head pwd dirname'
+missed_required_tools=`_check_installed_tools $required_utils`
+if (( `echo $missed_required_tools | wc -w` > 0 ))
 then
-    echo -e "Error! Some required system tools, that are utilized in this sh script, are not installed:\nTool(s) \"$MISSED_REQUIRED_TOOLS\" is(are) missed, please install it(them)."
+    echo -e "Error! Some required system tools, that are utilized in this sh script, are not installed:\nTool(s) \"$missed_required_tools\" is(are) missed, please install it(them)."
     exit 1
 fi
 
 # Determine bin path for system tools
-GIT_BIN=`which git`
-CAT_BIN=`which cat`
-GREP_BIN=`which grep`
-BASENAME_BIN=`which basename`
-AWK_BIN=`which awk`
-HEAD_BIN=`which head`
-PWD_BIN=`which pwd`
-DIRNAME_BIN=`which dirname`
+git_bin=`which git`
+cat_bin=`which cat`
+grep_bin=`which grep`
+basename_bin=`which basename`
+awk_bin=`which awk`
+head_bin=`which head`
+pwd_bin=`which pwd`
+dirname_bin=`which dirname`
 
-BASE_NAME=`$BASENAME_BIN "$0"`
-
+base_name=`$basename_bin "$0"`
 
 # 2. Load env variables
 
-TOOL_DIR=$($DIRNAME_BIN "$0")
-ENV_FILE_PATH="$TOOL_DIR"/.env
-if [ -f "$ENV_FILE_PATH" ]
+tool_dir=$($dirname_bin "$0")
+env_file_path="$tool_dir"/.env
+if [ -f "$env_file_path" ]
 then
-    source $ENV_FILE_PATH
-    echo "Loaded .env from $ENV_FILE_PATH."
+    source $env_file_path
+    echo "Loaded .env from $env_file_path."
 else
-   echo -e "$ENV_FILE_PATH was not found. Copy .env.example to .env and specify the path to the converter tool."
+   echo -e "$env_file_path was not found. Copy .env.example to .env and specify the path to the converter tool."
 fi
 
 # 3. Help menu
 
 if [ "$1" = "-?" -o "$1" = "-h" -o "$1" = "--help" ]
 then
-    $CAT_BIN << EOFH
-Usage: sh $BASE_NAME [--help] [-b <branch>] [-r <release version>] [-v <version>] [-c <commit>:<commit>]
+    $cat_bin << EOFH
+Usage: sh $base_name [--help] [-b <branch>] [-r <release version>] [-v <version>] [-c <commit>:<commit>]
 Generate a patch by collecting changes from the latest tag to HEAD (by default).
 The tool should be run from the directory containing the repository.
 
@@ -81,23 +80,23 @@ fi
 
 # 4. Get options
 
-BRANCH=
-RELEASE_VERSION=
-PATCH_VERSION=
-COLLECT_REVISIONS_RANGE=
+branch=
+release_version=
+patch_version=
+collect_revisions_range=
 while getopts b:v:r:c: opt; do
     case $opt in
     b)
-        BRANCH="$OPTARG"
+        branch="$OPTARG"
         ;;
     r)
-        RELEASE_VERSION="$OPTARG"
+        release_version="$OPTARG"
         ;;
     v)
-        PATCH_VERSION="$OPTARG"
+        patch_version="$OPTARG"
         ;;
     c)
-        COLLECT_REVISIONS_RANGE="$OPTARG"
+        collect_revisions_range="$OPTARG"
         ;;
     esac
 done
@@ -105,123 +104,121 @@ done
 # 5. Git preparations
 
 _check_git_revision() {
-    CHECK_COMMIT=`$GIT_BIN rev-list HEAD.."$1" > /dev/null 2>&1`
-    CHECK_COMMIT_RESULT=$?
-    if [ ! "$CHECK_COMMIT_RESULT" -eq 0 ]
+    check_commit=`$git_bin rev-list HEAD.."$1" > /dev/null 2>&1`
+    check_commit_result=$?
+    if [ ! "$check_commit_result" -eq 0 ]
     then
         echo -e "ERROR: An invalid revision range was specified."
         exit 1
     fi
 }
 
-# Determine if current directory is under git control
-IS_UNDER_GIT_CONTROL=777
-$GIT_BIN rev-parse -q
-IS_UNDER_GIT_CONTROL=$?
-if [ ! "$IS_UNDER_GIT_CONTROL" -eq 0 ]
+# Determine if the current directory is under git control
+is_under_git_control=777
+$git_bin rev-parse -q
+is_under_git_control=$?
+if [ ! "$is_under_git_control" -eq 0 ]
 then
     echo -e "ERROR: The patch can't be created because the current directory is not a Git repository."
     exit 1
 fi
 
 # Checkout branch
-if [ -n "$BRANCH" ]
+if [ -n "$branch" ]
 then
-    $GIT_BIN fetch
-    $GIT_BIN checkout $BRANCH
+    $git_bin fetch
+    $git_bin checkout $branch
     if [ $? -ne 0 ]
     then
-      echo -e "ERROR: The branch $BRANCH does not exist."
+      echo -e "ERROR: The branch $branch does not exist."
       exit 1
     fi
-    $GIT_BIN merge
+    $git_bin merge
 fi
 
-# Get latest tag in current branch
-CURRENT_TAG=`$GIT_BIN describe --abbrev=0 --tags`
+# Get the latest tag in the current branch
+current_tag=`$git_bin describe --abbrev=0 --tags`
 
-# If revisions range was omitted, then set range from current tag to HEAD
-if [ -z "$COLLECT_REVISIONS_RANGE" ]
+# If revisions range was omitted, then set the range from the current tag to HEAD
+if [ -z "$collect_revisions_range" ]
 then
-    COLLECT_REVISIONS_RANGE="$CURRENT_TAG..HEAD"
-    START_COMMIT=`$GIT_BIN rev-list "$CURRENT_TAG" | $HEAD_BIN -n 1`
+    collect_revisions_range="$current_tag..HEAD"
+    start_commit=`$git_bin rev-list "$current_tag" | $head_bin -n 1`
 else
-    START_COMMIT=`echo "$COLLECT_REVISIONS_RANGE" | $AWK_BIN -F ":" '{print $1}'`
-    END_COMMIT=`echo "$COLLECT_REVISIONS_RANGE" | $AWK_BIN -F ":" '{print $2}'`
+    start_commit=`echo "$collect_revisions_range" | $awk_bin -F ":" '{print $1}'`
+    end_commit=`echo "$collect_revisions_range" | $awk_bin -F ":" '{print $2}'`
 
-    # Check if specified "start" and "end" commits are exist
-    _check_git_revision "$START_COMMIT"
+    # Check if specified "start" and "end" commits exist
+    _check_git_revision "$start_commit"
 
-    # If "end" commit was specified (not empty), set revisions range in applicable format for "git diff" command
-    if [ ! -z "$END_COMMIT" ]
+    # If "end" commit was specified (not empty), set the revisions range in the applicable format for "git diff" command
+    if [ ! -z "$end_commit" ]
     then
-        _check_git_revision "$END_COMMIT"
-        COLLECT_REVISIONS_RANGE="$START_COMMIT..$END_COMMIT"
+        _check_git_revision "$end_commit"
+        collect_revisions_range="$start_commit..$end_commit"
     fi
 
 fi
 
 echo "======== Commits in the patch: ========"
-$GIT_BIN log --oneline -50 $COLLECT_REVISIONS_RANGE
+$git_bin log --oneline -50 $collect_revisions_range
 echo "======== Based on: ===================="
-$GIT_BIN log --oneline -1 `$GIT_BIN rev-parse $START_COMMIT`
+$git_bin log --oneline -1 `$git_bin rev-parse $start_commit`
 echo "======================================="
 
 # 6. Patch tool file name
 
-CURRENT_BRANCH=`$GIT_BIN rev-parse --abbrev-ref HEAD`
-TICKET_NUMBER=$(echo "$CURRENT_BRANCH" | $GREP_BIN -oE '^[A-Z]*-[0-9]*')
-DEBUG_SUFFIX=$(echo "$CURRENT_BRANCH" | $GREP_BIN -i 'debug')
-if [ -n "$DEBUG_SUFFIX" ]
+current_branch=`$git_bin rev-parse --abbrev-ref HEAD`
+ticket_number=$(echo "$current_branch" | $grep_bin -oE '^[A-Z]*-[0-9]*')
+debug_suffix=$(echo "$current_branch" | $grep_bin -i 'debug')
+if [ -n "$debug_suffix" ]
 then
-    PATCH_ID="$TICKET_NUMBER""_DEBUG"
+    patch_id="$ticket_number""_DEBUG"
 else
-    PATCH_ID="$TICKET_NUMBER"
+    patch_id="$ticket_number"
 fi
 
-if [ -z "$RELEASE_VERSION" ]
+if [ -z "$release_version" ]
 then
-    RELEASE_VERSION=`echo $CURRENT_TAG | $AWK_BIN '{gsub("v",""); print}'`
+    release_version=`echo $current_tag | $awk_bin '{gsub("v",""); print}'`
 fi
 
-if [[ "$PATCH_VERSION" == "v1" ]] || [[ -z "$PATCH_VERSION" ]]
+if [[ "$patch_version" == "v1" ]] || [[ -z "$patch_version" ]]
 then
-    PATCH_VERSION_SUFFIX=
+    patch_version_suffix=
 else
-    PATCH_VERSION_SUFFIX="_$PATCH_VERSION"
+    patch_version_suffix="_$patch_version"
 fi
 
-PATCH_FILE_NAME_GIT="$PATCH_ID""_""$RELEASE_VERSION""$PATCH_VERSION_SUFFIX"".git.patch"
-PATCH_FILE_NAME_COMPOSER="$PATCH_ID""_""$RELEASE_VERSION""$PATCH_VERSION_SUFFIX"".patch"
-
+patch_file_name_git="$patch_id""_""$release_version""$patch_version_suffix"".git.patch"
+patch_file_name_composer="$patch_id""_""$release_version""$patch_version_suffix"".patch"
 
 # 7. Create the patch file
 
-$GIT_BIN diff -a -p $COLLECT_REVISIONS_RANGE > $PATCH_FILE_NAME_GIT
+$git_bin diff -a -p $collect_revisions_range > $patch_file_name_git
 
 # Create a composer version of the file
-CURRENT_DIR=`$PWD_BIN`
-PATCH_FILE_PATH_GIT="$CURRENT_DIR"/"$PATCH_FILE_NAME_GIT"
-PATCH_FILE_PATH_COMPOSER="$CURRENT_DIR"/"$PATCH_FILE_NAME_COMPOSER"
+current_dir=`$pwd_bin`
+patch_file_path_git="$current_dir"/"$patch_file_name_git"
+patch_file_path_composer="$current_dir"/"$patch_file_name_composer"
 if [ -n "$PATCH_CONVERTER_TOOL_BIN" ]
 then
-    $PATCH_CONVERTER_TOOL_BIN $PATCH_FILE_PATH_GIT > $PATCH_FILE_PATH_COMPOSER
+    $PATCH_CONVERTER_TOOL_BIN $patch_file_path_git > $patch_file_path_composer
 fi
-
 
 # 8. Report results
 
-if [ -f "$PATCH_FILE_PATH_GIT" ] && [ $(wc -c < "$PATCH_FILE_PATH_GIT") -gt 1 ]
+if [ -f "$patch_file_path_git" ] && [ $(wc -c < "$patch_file_path_git") -gt 1 ]
 then
     echo "Git patch created successfully."
-    echo "The location of the git patch is: $PATCH_FILE_PATH_GIT"
+    echo "The location of the git patch is: $patch_file_path_git"
 else
     echo "Something went wrong while generating the patch."
 fi
-if [ -f "$PATCH_FILE_PATH_COMPOSER" ] && [ $(wc -c < "$PATCH_FILE_PATH_COMPOSER") -gt 1 ]
+if [ -f "$patch_file_path_composer" ] && [ $(wc -c < "$patch_file_path_composer") -gt 1 ]
 then
     echo "Composer patch created successfully."
-    echo "The location of the composer patch is: $PATCH_FILE_PATH_COMPOSER"
+    echo "The location of the composer patch is: $patch_file_path_composer"
 else
     echo "There was an error while generating the composer patch. Please recheck the converter tool location."
 fi
