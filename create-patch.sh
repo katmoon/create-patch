@@ -152,11 +152,11 @@ else
 
 fi
 
-printf "======== Commits in the patch: ========"
-$git_bin log --oneline -50 "$collect_revisions_range"
-printf "======== Based on: ===================="
-"$git_bin" log --oneline -1 "$("$git_bin" rev-parse "$start_commit")"
-printf "======================================="
+echo "======== Commits in the patch: ========"
+"$git_bin" log --oneline --format='%C(auto)%h %Cgreen%ad%Creset %s%C(auto)%d' --color --decorate --date=iso -50 "$collect_revisions_range"
+echo "======== Based on: ===================="
+"$git_bin" log --oneline --format='%C(auto)%h %Cgreen%ad%Creset %s%C(auto)%d' --color --decorate --date=iso -1 "$("$git_bin" rev-parse "$start_commit")"
+echo "======================================="
 
 # 6. Patch tool file name
 
@@ -209,7 +209,7 @@ else
 fi
 if [ -f "$patch_file_path_composer" ] && [ "$(wc -c < "$patch_file_path_composer")" -gt 1 ]
 then
-    echo "Composer patch created successfully."
+    echo -e "\e[32mComposer patch created successfully.\e[0m"
     echo "The location of the composer patch is: $patch_file_path_composer"
 else
     echo "There was an error while generating the composer patch. Please recheck the converter tool location."
