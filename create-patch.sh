@@ -182,7 +182,10 @@ patch_file_name_composer="${patch_id}_${release_version}${patch_version_suffix}.
 
 # 7. Create the patch file
 
-$git_bin diff -a -p -M90% "$collect_revisions_range" >"$patch_file_name_git"
+if ! $git_bin diff -a -p --no-renames "$collect_revisions_range" >"$patch_file_name_git"; then
+    echo "Error: Failed to create a git patch file."
+    exit 1
+fi
 
 # Create a composer version of the file
 current_dir=$($pwd_bin)
