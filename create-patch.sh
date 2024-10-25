@@ -161,10 +161,14 @@ echo "======================================="
 current_branch=$($git_bin rev-parse --abbrev-ref HEAD)
 ticket_number=$(echo "$current_branch" | $grep_bin -oE '^[A-Z]*-[0-9]*')
 debug_suffix=$(echo "$current_branch" | $grep_bin -i 'debug')
+custom_suffix=$(echo "$current_branch" | $grep_bin -i 'custom')
 if [ -n "$debug_suffix" ]; then
     patch_id="${ticket_number}_DEBUG"
 else
     patch_id="$ticket_number"
+fi
+if [ -n "$custom_suffix" ]; then
+    patch_id="${patch_id}_CUSTOM"
 fi
 
 if [ -z "$release_version" ]; then
