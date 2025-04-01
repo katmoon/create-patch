@@ -25,5 +25,5 @@ Example:
 create-patch.sh -b ABCD-1234
 create-patch.sh -b ABCD-1234 -v v2
 create-patch.sh -b ABCD-1234_DEBUG -v v2
+create-patch.sh -b ABCD-1234_CUSTOM -r 2.4.7-p4
 ```
-
